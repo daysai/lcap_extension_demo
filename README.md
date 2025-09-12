@@ -1,21 +1,23 @@
 # Lcap Frontend Library Demo
 
+建议使用 pnpm 安装
+
 ## 安装
 
 ```
-npm install
+pnpm install
 ```
 
 ## 开发
 
 ```
-npm start
+pnpm start
 ```
 
 或
 
 ```
-npm run dev
+pnpm run dev
 ```
 
 ## 添加组件
@@ -33,7 +35,7 @@ lcap create logic
 ## 构建 & 发布
 
 ```
-npm run build
+pnpm run build
 ```
 
 构建完成后，将 `[packageName]@[packageVersion].zip` 文件上传到平台即可
