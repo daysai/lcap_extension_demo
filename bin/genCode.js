@@ -37,6 +37,35 @@ function getTagName(framework, name) {
   return framework.startsWith('vue') ? kebabCase(name) : name;
 }
 
+// 精准匹配并清理 mixins 数组
+function cleanMixinsArray(text) {
+  // 精确匹配 mixins: [ ... ] 结构
+  const mixinsRegex = /(mixins:\s*)\[([\s\S]*?)\]/g;
+  return text.replace(mixinsRegex, (match, prefix, content) => {
+    // 清理方括号内的空格和换行
+    const cleaned = content
+      .replace(/\s+/g, ' ') // 所有空白字符替换为单个空格
+      .trim(); // 移除首尾空格
+    return `${prefix}window.$mixins ? [${cleaned}] : []`;
+  });
+}
+
+// 精确匹配所有 return this.__getOrCreateDataSource( ，并在前面加上判断 this.__getOrCreateDataSource 是否存在
+function handleGetOrCreateDataSource(text) {
+  const getOrCreateDataSourceRegex = /(return\s+this\.__getOrCreateDataSource\()/g;
+  return text.replace(getOrCreateDataSourceRegex, (match, prefix) => {
+    return `if (!this.__getOrCreateDataSource) return;\n${prefix}`;
+  })
+}
+
+// 精确匹配所有 meta: { ... } 结构，整体替换成 name: ${tagName}
+function handleMeta(text, tagName) {
+  const metaRegex = /(meta:\s*\{([\s\S]*?)\})/g;
+  return text.replace(metaRegex, () => {
+    return `name: '${tagName}'`;
+  })
+}
+
 function createComponent(rootPath, metaInfo, options) {
   const templateFolder = path.resolve(__dirname, `${metaInfo.framework}-component`);
   if (!fs.existsSync(templateFolder)) {
@@ -53,6 +82,14 @@ function createComponent(rootPath, metaInfo, options) {
     fs.removeSync(componentFolder);
     console.log(`组件目录 ${componentFolder} 已存在，删除后重新创建`);
   }
+
+  let sourceCode = options.sourceCode;
+  // 精准匹配并清理 mixins 数组
+  sourceCode = cleanMixinsArray(sourceCode);
+  // 预览兼容 __getOrCreateDataSource 方法
+  sourceCode = handleGetOrCreateDataSource(sourceCode);
+  // 精确匹配并替换 meta: { ... } 结构
+  sourceCode = handleMeta(sourceCode, tagName);
 
   const replaceTextList = [
     {
@@ -85,7 +122,7 @@ function createComponent(rootPath, metaInfo, options) {
     },
     {
       reg: /\{\{compCode\}\}/g,
-      text: options.sourceCode,
+      text: sourceCode,
     },
   ];
 
